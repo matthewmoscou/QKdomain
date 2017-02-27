@@ -30,10 +30,23 @@ def average(number_list):
 
 
 # import arguments and options
-usage = "usage: %prog interproscan_output preprocess_summary"
+usage = "usage: %prog interproscan_output preprocess_summary [abbreviations]"
 parser = OptionParser(usage=usage)
 (options, args) = parser.parse_args()
 
+domain_abbreviation = {}
+
+# import domain abbreviations
+if len(args) > 2:
+	abbreviation_file = open(args[2], 'r')
+	
+	for line in abbreviation_file.readlines():
+		line = string.replace(line, '\n', '')
+		sline = string.split(line, '\t')
+	
+		domain_abbreviation[sline[0]] = sline[1]
+	
+	abbreviation_file.close()
 
 # import interproscan output
 interproscan_file = open(args[0], 'r')
@@ -59,10 +72,22 @@ interproscan_file.close()
 
 preprocess_summary = open(args[1], 'w')
 
-preprocess_summary.write('domainID' + '\t' + 'software' + '\t' + 'shortname' + '\t' + 'longname' + '\t' + 'genes_with_domain' + '\t' + 'total_observed_domains' + '\t' + 'average_domain_length' + '\n')
+preprocess_summary.write('domainID' + '\t' + 'software' + '\t' + 'shortname' + '\t' + 'longname' + '\t' + 'genes_with_domain' + '\t' + 'total_observed_domains' + '\t' + 'average_domain_length')
+
+if len(args) > 2:
+	preprocess_summary.write('\t' + 'abbreviations')
+
+preprocess_summary.write('\n')
 
 for domain in domain_software_annotation_frequency_length.keys():
-	preprocess_summary.write(domain + '\t' + '\t'.join(domain_software_annotation_frequency_length[domain][:3]) + '\t' + str(len(sets.Set(domain_software_annotation_frequency_length[domain][3]))) + '\t' + str(len(domain_software_annotation_frequency_length[domain][3])) + '\t' + str(average(domain_software_annotation_frequency_length[domain][4])) + '\n')
-
+	preprocess_summary.write(domain + '\t' + '\t'.join(domain_software_annotation_frequency_length[domain][:3]) + '\t' + str(len(sets.Set(domain_software_annotation_frequency_length[domain][3]))) + '\t' + str(len(domain_software_annotation_frequency_length[domain][3])) + '\t' + str(average(domain_software_annotation_frequency_length[domain][4])))
+	
+	if len(args) > 2:
+		if domain in domain_abbreviation.keys():
+			preprocess_summary.write('\t' + domain_abbreviation[domain])
+		else:
+			preprocess_summary.write('\t')
+	
+	preprocess_summary.write('\n')
 
 preprocess_summary.close()

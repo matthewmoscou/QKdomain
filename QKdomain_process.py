@@ -101,6 +101,9 @@ process_summary_file = open(args[3], 'w')
 if len(args) > 4:
 	individual_domain_file = open(args[4], 'w')
 
+if len(options.undefined) > 0:
+	undefined_region_file = open(options.undefined, 'w')
+
 for gene in gene_position_domain.keys():
 	gene_structure = []
 	gene_structure_start_stop = []
@@ -109,6 +112,14 @@ for gene in gene_position_domain.keys():
 	local_domains = []
 	start = -1
 
+	if len(options.undefined) > 0:
+		if len(gene_position_domain[gene][0]) == 0:
+			undefined_start = 0
+		else:
+			undefined_start = -1
+
+		undefined_domain_index = 1
+
 	for position in positions:
 		if len(gene_position_domain[gene][position]) > 0:
 			for domain in gene_position_domain[gene][position]:
@@ -116,6 +127,14 @@ for gene in gene_position_domain.keys():
 
 			if start < 0:
 				start = position
+	
+			if len(options.undefined) > 0:
+				if undefined_start >= 0:
+					undefined_region_file.write('>'  + gene + '_' + str(undefined_domain_index) + '_' + str(undefined_start) + '_' + str(position) + '\n')
+					individual_domain_file.write(ID_sequence[gene][undefined_start:position] + '\n')
+
+					undefined_start = -1
+					undefined_domain_index += 1
 		
 		elif len(gene_position_domain[gene][position]) == 0:
 			if len(local_domains) > 0:
@@ -127,14 +146,17 @@ for gene in gene_position_domain.keys():
 				start = -1
 
 				local_domains = []
-	
+
+			if len(options.undefined) > 0:
+				if undefined_start < 0:
+					undefined_start = position
+
 	if len(local_domains) > 0:
 		for domain_group in domain_group_identifiers.keys():
 			if len(sets.Set(local_domains) & sets.Set(domain_group_identifiers[domain_group])) > 0:
 				gene_structure.append(domain_group)
 				gene_structure_start_stop.append([start, position])
 	
-
 	process_summary_file.write(gene + '\t' + '-'.join(gene_structure) + '\n')
 
 	# if exporting specific domain(s), scan for multiple structures in protein sequence
@@ -164,3 +186,6 @@ process_summary_file.close()
 
 if len(args) > 4:
 	individual_domain_file.close()
+
+if len(options.undefined) > 0:
+	undefined_region_file.close()
