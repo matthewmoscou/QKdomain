@@ -15,11 +15,11 @@ A set of scripts that can be used for domain analysis. The majority of which are
 
 ## Example
 ### Identify all thioredoxins in <i>Arabidopsis thaliana</i>
-The user is required to first identify a set of protein sequences to be evaluated. Next, InterProScan needs to be ran on these sequences and the output in tab-separated format (tsv) is used as input for domain analysis.
+The user is required to identify a set of protein sequences to be evaluated. Next, use InterProScan to evaluate these sequences. The resulting output in tab-separated format (tsv) is used as input for domain analysis. `QKdomain_preprocess.py` is used to assess the domain content present in the protein data set.
 ```bash
 python QKdomain_preprocess.py examples/Athaliana_167_TAIR10.protein.TRX.fa.tsv At_TRX_preprocess.txt
 ```
-The output file `At_TRX_preprocess.txt` can be used to manually curate identifiers to generate redundant abbreviations for the next component of the analysis. Below is an example of a set of abbreviations generated from `At_TRX_preprocess.txt`.
+The output file `At_TRX_preprocess.txt` is used to manually curate identifiers to generate redundant abbreviations for the next component of the analysis. Below is an example of a set of abbreviations generated from `At_TRX_preprocess.txt`.
 ```
 Coil	CC
 PF00085	TRX
@@ -28,7 +28,8 @@ PF00515	TPR
 PF00789	UBX
 ...
 ```
-Next, we export all thioredoxin (TRX) domains in the set of proteins.
+
+Next, we identify the domain structure of proteins in the data set.
 ```bash
 python QKdomain_process.py examples/Athaliana_167_TAIR10.protein.TRX.fa examples/Athaliana_167_TAIR10.protein.TRX.fa.tsv examples/At_TRX_abbreviations.txt At_TRX_process.txt
 ```
@@ -44,8 +45,21 @@ AT2G32920.1	TRX-TRX-TRX
 AT1G08570.1	CC-TRX
 ...
 ```
+
 To export all thioredoxin (TRX) domains in the set of proteins, use the following command:
 ```bash
 python QKdomain_process.py -d TRX examples/Athaliana_167_TAIR10.protein.TRX.fa examples/Athaliana_167_TAIR10.protein.TRX.fa.tsv examples/At_TRX_abbreviations.txt At_TRX_process.txt At.TRX.domain.fa
 ```
 The file `At.TRX.domain.fa` will contain individual non-overlapping domains delineated by InterProScan. Overlapping domains would be integrated into a single domain and would require manual curation in a multiple sequence alignment to correct. The protein identifier is modified to include the start and end positions selected and the domain structure of the original protein.
+
+`QKdomain_process.py` has several additional parameters that allow the user to extend the size of the extracted domain. The commands `--nextend` will extend N-terminal from the start of the domain, whereas `--cextend` will extend C-terminal from the end of the domain. If the value provided by the user is between 0.0 and 1.0, the extension will be weighted based on the size of the domain itself. Otherwise for values greater than 1 will be treated as a fixed number of amino acids.
+
+Example of extracting thioredoxin (TRX) domains with an additional 10 amino acids from both N-terminal and C-terminal ends of the domain.
+```bash
+python QKdomain_process.py -d TRX --nextend 10 --cextend 10 examples/Athaliana_167_TAIR10.protein.TRX.fa examples/Athaliana_167_TAIR10.protein.TRX.fa.tsv examples/At_TRX_abbreviations.txt At_TRX_process.txt At.TRX.domain.fa
+```
+
+InterProScan is limited by the set of predicted motifs that have been identified and annotated. When focusing on a set of proteins with a shared domain, their may be novel motifs in the sequence. Using the command `--undefined` will extract all regions in the protein sequence that are not annotated by a InterProScan domain. A filename is required to export FASTA sequence for all extracted regions. An example is shown below for the <i>A. thaliana</i> thioredoxin data set.
+```bash
+python QKdomain_process.py -d TRX examples/Athaliana_167_TAIR10.protein.TRX.fa examples/Athaliana_167_TAIR10.protein.TRX.fa.tsv examples/At_TRX_abbreviations.txt At_TRX_process.txt At.TRX.domain.fa --undefined At.TRX.undefined.regions.fa
+```
