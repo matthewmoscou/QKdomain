@@ -59,12 +59,13 @@ for line in abbreviation_file.readlines():
 	line = string.replace(line, '\n', '')
 	sline = string.split(line, '\t')
 
-	domain_abbreviation[sline[0]] = sline[1]
+	if len(sline) > 1:
+		domain_abbreviation[sline[0]] = sline[1]
 
-	if sline[1] not in domain_group_identifiers.keys():
-		domain_group_identifiers[sline[1]] = []
+		if sline[1] not in domain_group_identifiers.keys():
+			domain_group_identifiers[sline[1]] = []
 	
-	domain_group_identifiers[sline[1]].append(sline[0])
+		domain_group_identifiers[sline[1]].append(sline[0])
 
 abbreviation_file.close()
 
@@ -91,7 +92,8 @@ for line in interproscan_data:
 	sline = string.split(line, '\t')
 	
 	for position_index in range(int(sline[6]) - 1, int(sline[7])):
-		gene_position_domain[sline[0]][position_index].append(domain_abbreviation[sline[4]])
+		if sline[4] in domain_abbreviation.keys():
+			gene_position_domain[sline[0]][position_index].append(domain_abbreviation[sline[4]])
 	
 interproscan_file.close()
 
@@ -166,16 +168,31 @@ for gene in gene_position_domain.keys():
 		for index in range(0, len(gene_structure) - num_domains + 1):
 			if options.domain == '-'.join(gene_structure[index:(index+num_domains)]):
 				if options.nextend > 0:
-					if (gene_structure_start_stop[index][0] - int(options.nextend)) > 0:
-						local_start = gene_structure_start_stop[index][0] - int(options.nextend)
+					if options.nextend >= 1.0:
+						if (gene_structure_start_stop[index][0] - int(options.nextend)) >= 0:
+							local_start = gene_structure_start_stop[index][0] - int(options.nextend)
+						else:
+							local_start = 0
+					else:
+						if (gene_structure_start_stop[index][0] - (options.nextend * (gene_structure_start_stop[index + num_domains - 1][1] - gene_structure_start_stop[index][0]))) >= 0:
+							local_start = gene_structure_start_stop[index][0] - int(options.nextend * (gene_structure_start_stop[index + num_domains - 1][1] - gene_structure_start_stop[index][0]))
+						else:
+							local_start = 0
+
 				else:
 					local_start = gene_structure_start_stop[index][0]
 
 				if options.cextend > 0:
-					if (gene_structure_start_stop[index + num_domains - 1][1] + int(options.cextend)) > len(ID_sequence[gene]):
-						local_stop = gene_structure_start_stop[index + num_domains - 1][1] + int(options.cextend)
+					if options.nextend >= 1.0:
+						if (gene_structure_start_stop[index + num_domains - 1][1] + int(options.cextend)) < len(ID_sequence[gene]):
+							local_stop = gene_structure_start_stop[index + num_domains - 1][1] + int(options.cextend)
+						else:
+							local_stop = len(ID_sequence[gene])
 					else:
-						local_stop = gene_structure_start_stop[index + num_domains - 1][1]
+						if (gene_structure_start_stop[index + num_domains - 1][1] + (options.cextend * (gene_structure_start_stop[index + num_domains - 1][1] - gene_structure_start_stop[index][0]))) < len(ID_sequence[gene]):
+							local_stop = gene_structure_start_stop[index + num_domains - 1][1] + int(options.cextend * (gene_structure_start_stop[index + num_domains - 1][1] - gene_structure_start_stop[index][0]))
+						else:
+							local_stop = len(ID_sequence[gene])
 				else:
 					local_stop = gene_structure_start_stop[index + num_domains - 1][1]
 
