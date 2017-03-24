@@ -133,7 +133,9 @@ for gene in gene_position_domain.keys():
 			if len(options.undefined) > 0:
 				if undefined_start >= 0:
 					undefined_region_file.write('>'  + gene + '_' + str(undefined_domain_index) + '_' + str(undefined_start) + '_' + str(position) + '\n')
-					individual_domain_file.write(ID_sequence[gene][undefined_start:position] + '\n')
+					
+					if len(args) > 4:
+						individual_domain_file.write(ID_sequence[gene][undefined_start:position] + '\n')
 
 					undefined_start = -1
 					undefined_domain_index += 1
@@ -196,8 +198,9 @@ for gene in gene_position_domain.keys():
 				else:
 					local_stop = gene_structure_start_stop[index + num_domains - 1][1]
 
-				individual_domain_file.write('>' + gene + '_' + str(local_start) + '_' + str(local_stop) + ' ' + '-'.join(gene_structure) + '\n')
-				individual_domain_file.write(ID_sequence[gene][local_start:local_stop] + '\n')
+				if len(args) > 4:
+					individual_domain_file.write('>' + gene + '_' + str(local_start) + '_' + str(local_stop) + ' ' + '-'.join(gene_structure) + '\n')
+					individual_domain_file.write(ID_sequence[gene][local_start:local_stop] + '\n')
 
 process_summary_file.close()
 
