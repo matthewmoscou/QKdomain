@@ -8,12 +8,6 @@ Reads InterProScan output and user-defined abbreviations, performs the following
 	3. Permits extended domain export (+/- based on length of domain or fixed values)
 
 Author: Matthew Moscou <matthew.moscou@tsl.ac.uk>
-This performs the following:
-	1.
-
-Improvements from existing script set (22 February 2017):
-
-Future improvements to include:
 """
 
 # modules
@@ -114,6 +108,7 @@ for gene in gene_position_domain.keys():
 	local_domains = []
 	start = -1
 
+	# if undefined, initialize start position
 	if len(options.undefined) > 0:
 		if len(gene_position_domain[gene][0]) == 0:
 			undefined_start = 0
@@ -123,24 +118,28 @@ for gene in gene_position_domain.keys():
 		undefined_domain_index = 1
 
 	for position in positions:
+		# if position contains one or more domains
 		if len(gene_position_domain[gene][position]) > 0:
+			# add domains to local_domains
 			for domain in gene_position_domain[gene][position]:
 				local_domains.append(domain)
 
+			# initialize start of domain if first instance
 			if start < 0:
 				start = position
 	
+			# if undefined was active, export position between domains, reset undefined
 			if len(options.undefined) > 0:
 				if undefined_start >= 0:
 					undefined_region_file.write('>'  + gene + '_' + str(undefined_domain_index) + '_' + str(undefined_start) + '_' + str(position) + '\n')
-					
-					if len(args) > 4:
-						individual_domain_file.write(ID_sequence[gene][undefined_start:position] + '\n')
+					undefined_region_file.write(ID_sequence[gene][undefined_start:position] + '\n')
 
 					undefined_start = -1
 					undefined_domain_index += 1
 		
+		# if position does not contain a domain
 		elif len(gene_position_domain[gene][position]) == 0:
+			# add domain(s) to gene structure that ended, reinitialize
 			if len(local_domains) > 0:
 				for domain_group in domain_group_identifiers.keys():
 					if len(sets.Set(local_domains) & sets.Set([domain_group])) > 0:
@@ -151,16 +150,19 @@ for gene in gene_position_domain.keys():
 
 				local_domains = []
 
+			# if undefined, initialize start position
 			if len(options.undefined) > 0:
 				if undefined_start < 0:
 					undefined_start = position
 
+	# at end of sequence, if domains reach end, add domain(s) to gene structure
 	if len(local_domains) > 0:
 		for domain_group in domain_group_identifiers.keys():
 			if len(sets.Set(local_domains) & sets.Set(domain_group_identifiers[domain_group])) > 0:
 				gene_structure.append(domain_group)
 				gene_structure_start_stop.append([start, position])
 	
+	# export ordered domain structure
 	process_summary_file.write(gene + '\t' + '-'.join(gene_structure) + '\n')
 
 	# if exporting specific domain(s), scan for multiple structures in protein sequence
