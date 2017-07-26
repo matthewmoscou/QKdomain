@@ -10,8 +10,7 @@ A set of scripts that can be used for domain analysis. The majority of which are
 2. Extracts protein sequence not associated with a known domain (optional)
 3. Extracts protein sequence encompassing specific domains (optional)
 4. Extract proteins with a specific domain composition, strict or relaxed (optional)
-
-<i>QKdomain_alignment.py</i> assesses the quality of a multiple sequence alignment in representation and coverage.
+5. Exports an R script to generate a domain structure figure (optional)
 
 ## Example
 ### Identify all thioredoxins in <i>Arabidopsis thaliana</i>

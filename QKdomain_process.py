@@ -13,6 +13,7 @@ Author: Matthew Moscou <matthew.moscou@tsl.ac.uk>
 # modules
 import optparse
 from optparse import OptionParser
+import random
 import sets
 import string
 
@@ -24,13 +25,20 @@ parser.add_option("-d", "--domain", action="store", type="string", dest="domain"
 parser.add_option("-n", "--nextend", action="store", type="float", dest="nextend", default=-1, help="Extended N-terminal export for selected domain")
 parser.add_option("-c", "--cextend", action="store", type="float", dest="cextend", default=-1, help="Extended C-terminal export for selected domain")
 parser.add_option("-u", "--undefined", action="store", dest="undefined", default="", help="Export undefined regions (i.e. without annotation)")
+parser.add_option("-p", "--plot", action="store_true", dest="plot", default="", help="Plot domain structure of all proteins")
+
 (options, args) = parser.parse_args()
+
+
+# random seed
+random.seed()
 
 
 # import protein sequence (FASTA)
 fasta_file = open(args[0], 'r')
 	
 ID_sequence = {}
+longest_protein = 0
 	
 for line in fasta_file.readlines():
 	if len(line) > 0:
@@ -39,13 +47,17 @@ for line in fasta_file.readlines():
 			ID_sequence[ID] = ''
 		else:
 			ID_sequence[ID] += string.split(line)[0]
-	
+			
+			if len(ID_sequence[ID]) > longest_protein:
+				longest_protein = len(ID_sequence[ID])
+
 fasta_file.close()
 	
 
 # import domain abbreviations
 domain_abbreviation = {}
 domain_group_identifiers = {}
+color_scheme = {}
 
 abbreviation_file = open(args[2], 'r')
 
@@ -60,9 +72,26 @@ for line in abbreviation_file.readlines():
 			domain_group_identifiers[sline[1]] = []
 	
 		domain_group_identifiers[sline[1]].append(sline[0])
+	
+	if len(sline) > 2:
+		color_scheme[sline[1]] = sline[2]
 
 abbreviation_file.close()
 
+
+# initialize color scheme for total number of domains
+
+hexidecimal = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E']
+
+for index in range(len(domain_group_identifiers.keys())):
+	color = '#'
+
+	for cindex in range(6):
+		random.shuffle(hexidecimal)
+		color += hexidecimal[0]
+
+	if domain_group_identifiers.keys()[index] not in color_scheme.keys():
+		color_scheme[domain_group_identifiers.keys()[index]] = color
 
 # initialize gene position domain dictionary
 gene_position_domain = {}
@@ -100,6 +129,12 @@ if len(args) > 4:
 if len(options.undefined) > 0:
 	undefined_region_file = open(options.undefined, 'w')
 
+if options.plot:
+	plot_file = open('gene_structure.R', 'w')
+	plot_file.write('plot(c(0,' + str(longest_protein) + '), c(0,-' + str(len(gene_position_domain.keys())) + '), type="n", main="", xlab="", ylab="", axes=F)' + '\n')
+
+gene_index = 1
+
 for gene in gene_position_domain.keys():
 	gene_structure = []
 	gene_structure_start_stop = []
@@ -118,8 +153,24 @@ for gene in gene_position_domain.keys():
 		undefined_domain_index = 1
 
 	for position in positions:
+		# if there is an immediate transition from one domain to the next
+		if start >= 0:
+			if len(sets.Set(local_domains) & sets.Set(gene_position_domain[gene][position])) == 0:
+				if len(local_domains) > 0:
+					for domain_group in domain_group_identifiers.keys():
+						if len(sets.Set(local_domains) & sets.Set([domain_group])) > 0:
+							gene_structure.append(domain_group)
+							gene_structure_start_stop.append([start, position])
+
+				local_domains = []
+
+				for domain in gene_position_domain[gene][position]:
+					local_domains.append(domain)
+
+				start = position
+		
 		# if position contains one or more domains
-		if len(gene_position_domain[gene][position]) > 0:
+		elif len(gene_position_domain[gene][position]) > 0:
 			# add domains to local_domains
 			for domain in gene_position_domain[gene][position]:
 				local_domains.append(domain)
@@ -162,6 +213,12 @@ for gene in gene_position_domain.keys():
 				gene_structure.append(domain_group)
 				gene_structure_start_stop.append([start, position])
 	
+	if options.plot:
+		plot_file.write('lines(c(0,' + str(len(ID_sequence[gene])) + '), c(-' + str(gene_index) + ',-' + str(gene_index) + '), col="black")'+ '\n')
+
+		for domain_index in range(len(gene_structure)):
+			plot_file.write('rect(' + str(gene_structure_start_stop[domain_index][0]) + ', -' + str(gene_index + 0.25) + ', ' + str(gene_structure_start_stop[domain_index][1]) + ', -' + str(gene_index - 0.25) + ', col="' + color_scheme[gene_structure[domain_index]] + '")' + '\n')
+
 	# export ordered domain structure
 	process_summary_file.write(gene + '\t' + '-'.join(gene_structure) + '\n')
 
@@ -203,6 +260,8 @@ for gene in gene_position_domain.keys():
 				if len(args) > 4:
 					individual_domain_file.write('>' + gene + '_' + str(local_start) + '_' + str(local_stop) + ' ' + '-'.join(gene_structure) + '\n')
 					individual_domain_file.write(ID_sequence[gene][local_start:local_stop] + '\n')
+
+	gene_index += 1
 
 process_summary_file.close()
 
