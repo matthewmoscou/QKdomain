@@ -141,7 +141,7 @@ for gene in gene_position_domain.keys():
 
 	positions = range(len(gene_position_domain[gene]))
 	local_domains = []
-	start = -1
+	start = {}
 
 	# if undefined, initialize start position
 	if len(options.undefined) > 0:
@@ -153,21 +153,39 @@ for gene in gene_position_domain.keys():
 		undefined_domain_index = 1
 
 	for position in positions:
-		# if there is an immediate transition from one domain to the next
-		if start >= 0:
+		if len(start.keys()) >= 0:
+			# if there is an immediate transition from one domain to the next
 			if len(sets.Set(local_domains) & sets.Set(gene_position_domain[gene][position])) == 0:
 				if len(local_domains) > 0:
 					for domain_group in domain_group_identifiers.keys():
 						if len(sets.Set(local_domains) & sets.Set([domain_group])) > 0:
 							gene_structure.append(domain_group)
-							gene_structure_start_stop.append([start, position])
+							gene_structure_start_stop.append([start[domain_group], position])
 
 				local_domains = []
+				start = {}
 
 				for domain in gene_position_domain[gene][position]:
 					local_domains.append(domain)
+					start[domain] = position
 
-				start = position
+			# else if a new domain is present, add start position
+			elif len(sets.Set(gene_position_domain[gene][position]) - sets.Set(local_domains)) > 0:
+				for domain_group in domain_group_identifiers.keys():
+					if len((sets.Set(gene_position_domain[gene][position]) - sets.Set(local_domains)) & sets.Set([domain_group])) > 0:
+						local_domains.append(domain_group)
+						start[domain_group] = position
+
+			# else if a domain finished
+			elif len(sets.Set(local_domains) - sets.Set(gene_position_domain[gene][position])) > 0:
+				for domain_group in domain_group_identifiers.keys():
+					if len((sets.Set(local_domains) - sets.Set(gene_position_domain[gene][position])) & sets.Set([domain_group])) > 0:
+						gene_structure.append(domain_group)
+						gene_structure_start_stop.append([start[domain_group], position])
+
+						local_domains.remove(domain_group)
+						del start[domain_group]
+
 		
 		# if position contains one or more domains
 		elif len(gene_position_domain[gene][position]) > 0:
@@ -175,9 +193,9 @@ for gene in gene_position_domain.keys():
 			for domain in gene_position_domain[gene][position]:
 				local_domains.append(domain)
 
-			# initialize start of domain if first instance
-			if start < 0:
-				start = position
+				# initialize start of domain if first instance
+				if len(start.keys()) == 0:
+					start[domain] = position
 	
 			# if undefined was active, export position between domains, reset undefined
 			if len(options.undefined) > 0:
@@ -195,10 +213,9 @@ for gene in gene_position_domain.keys():
 				for domain_group in domain_group_identifiers.keys():
 					if len(sets.Set(local_domains) & sets.Set([domain_group])) > 0:
 						gene_structure.append(domain_group)
-						gene_structure_start_stop.append([start, position])
+						gene_structure_start_stop.append([start[domain_group], position])
 				
-				start = -1
-
+				start = {}
 				local_domains = []
 
 			# if undefined, initialize start position
@@ -211,7 +228,7 @@ for gene in gene_position_domain.keys():
 		for domain_group in domain_group_identifiers.keys():
 			if len(sets.Set(local_domains) & sets.Set(domain_group_identifiers[domain_group])) > 0:
 				gene_structure.append(domain_group)
-				gene_structure_start_stop.append([start, position])
+				gene_structure_start_stop.append([start[domain_group], position])
 	
 	if options.plot:
 		plot_file.write('lines(c(0,' + str(len(ID_sequence[gene])) + '), c(-' + str(gene_index) + ',-' + str(gene_index) + '), col="black")'+ '\n')
