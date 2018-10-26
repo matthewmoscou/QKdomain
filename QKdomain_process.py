@@ -26,6 +26,7 @@ parser.add_option("-n", "--nextend", action="store", type="float", dest="nextend
 parser.add_option("-c", "--cextend", action="store", type="float", dest="cextend", default=-1, help="Extended C-terminal export for selected domain")
 parser.add_option("-u", "--undefined", action="store", dest="undefined", default="", help="Export undefined regions (i.e. without annotation)")
 parser.add_option("-p", "--plot", action="store_true", dest="plot", default="", help="Plot domain structure of all proteins")
+parser.add_option("-i", "--iTOL", action="store", dest="iTOL", default="", help="Generate iTOL domain structure, requires shape and color file")
 
 (options, args) = parser.parse_args()
 
@@ -93,6 +94,27 @@ for index in range(len(domain_group_identifiers.keys())):
 	if domain_group_identifiers.keys()[index] not in color_scheme.keys():
 		color_scheme[domain_group_identifiers.keys()[index]] = color
 
+# initialize color and shape associations, if iTOL command provided
+domain_shape_color = {}
+
+if len(options.iTOL) > 0:
+	iTOL_associations = open(options.iTOL, 'r')
+
+	for line in iTOL_associations.readlines():
+		sline = string.split(line)
+		domain_shape_color[sline[0]] = [sline[1], sline[2]]
+
+	iTOL_associations.close()
+
+	iTOL = open(args[3] + '_iTOL.txt', 'w')
+	iTOL.write('DATASET_DOMAINS' + '\n')
+	iTOL.write('SEPARATOR COMMA' + '\n')
+	iTOL.write('DATASET_LABEL,Protein domains' + '\n')
+	iTOL.write('COLOR,#ff0000' + '\n')
+	iTOL.write('DATASET_SCALE,500,1000,1500' + '\n')
+	iTOL.write('DATA' + '\n')
+
+
 # initialize gene position domain dictionary
 gene_position_domain = {}
 	
@@ -153,7 +175,7 @@ for gene in gene_position_domain.keys():
 		undefined_domain_index = 1
 
 	for position in positions:
-		if len(start.keys()) >= 0:
+		if len(start.keys()) > 0:
 			# if there is an immediate transition from one domain to the next
 			if len(sets.Set(local_domains) & sets.Set(gene_position_domain[gene][position])) == 0:
 				if len(local_domains) > 0:
@@ -189,12 +211,18 @@ for gene in gene_position_domain.keys():
 		
 		# if position contains one or more domains
 		elif len(gene_position_domain[gene][position]) > 0:
+			# if initializing the start of one or more domains, add to start dictionary
+			if len(start.keys()) == 0:
+				domain_start = True
+                        else:
+				domain_start = False
+
 			# add domains to local_domains
-			for domain in gene_position_domain[gene][position]:
+			for domain in list(sets.Set(gene_position_domain[gene][position])):
 				local_domains.append(domain)
 
 				# initialize start of domain if first instance
-				if len(start.keys()) == 0:
+				if domain_start:
 					start[domain] = position
 	
 			# if undefined was active, export position between domains, reset undefined
@@ -235,6 +263,18 @@ for gene in gene_position_domain.keys():
 
 		for domain_index in range(len(gene_structure)):
 			plot_file.write('rect(' + str(gene_structure_start_stop[domain_index][0]) + ', -' + str(gene_index + 0.25) + ', ' + str(gene_structure_start_stop[domain_index][1]) + ', -' + str(gene_index - 0.25) + ', col="' + color_scheme[gene_structure[domain_index]] + '")' + '\n')
+
+	if len(options.iTOL) > 0:
+		if len(gene_structure) > 0:
+			iTOL.write(gene + ',' + str(len(ID_sequence[gene])))
+
+			for domain_index in range(len(gene_structure)):
+				if gene_structure[domain_index] in domain_shape_color.keys():
+					iTOL.write(',' + domain_shape_color[gene_structure[domain_index]][0] + '|' + str(gene_structure_start_stop[domain_index][0]) + '|' + str(gene_structure_start_stop[domain_index][1]) + '|' + domain_shape_color[gene_structure[domain_index]][1] + '|' + gene_structure[domain_index])
+				else:
+					iTOL.write(',' + domain_shape_color['default'][0] + '|' + str(gene_structure_start_stop[domain_index][0]) + '|' + str(gene_structure_start_stop[domain_index][1]) + '|' + domain_shape_color['default'][1] + '|' + gene_structure[domain_index])
+
+			iTOL.write('\n')
 
 	# export ordered domain structure
 	process_summary_file.write(gene + '\t' + '-'.join(gene_structure) + '\n')
@@ -287,3 +327,6 @@ if len(args) > 4:
 
 if len(options.undefined) > 0:
 	undefined_region_file.close()
+
+if len(options.iTOL) > 0:
+	iTOL.close()
