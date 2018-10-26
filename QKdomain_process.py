@@ -64,7 +64,7 @@ abbreviation_file = open(args[2], 'r')
 
 for line in abbreviation_file.readlines():
 	line = string.replace(line, '\n', '')
-	sline = string.split(line, '\t')
+	sline = string.split(line)
 
 	if len(sline) > 1:
 		domain_abbreviation[sline[0]] = sline[1]
@@ -214,16 +214,17 @@ for gene in gene_position_domain.keys():
 			# if initializing the start of one or more domains, add to start dictionary
 			if len(start.keys()) == 0:
 				domain_start = True
-                        else:
+			else:
 				domain_start = False
 
 			# add domains to local_domains
 			for domain in list(sets.Set(gene_position_domain[gene][position])):
-				local_domains.append(domain)
+				if domain not in local_domains:
+					local_domains.append(domain)
 
-				# initialize start of domain if first instance
-				if domain_start:
-					start[domain] = position
+					# initialize start of domain if first instance
+					if domain_start:
+						start[domain] = position
 	
 			# if undefined was active, export position between domains, reset undefined
 			if len(options.undefined) > 0:
