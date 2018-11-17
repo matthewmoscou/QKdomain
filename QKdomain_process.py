@@ -37,7 +37,7 @@ random.seed()
 
 # import protein sequence (FASTA)
 fasta_file = open(args[0], 'r')
-	
+
 ID_sequence = {}
 longest_protein = 0
 	
@@ -46,14 +46,15 @@ for line in fasta_file.readlines():
 		if line[0] == '>':
 			ID = string.split(line)[0][1:]
 			ID_sequence[ID] = ''
-		else:
-			ID_sequence[ID] += string.split(line)[0]
+                else:
+			if len(string.split(line)) > 0:
+				ID_sequence[ID] += string.split(line)[0]
 			
-			if len(ID_sequence[ID]) > longest_protein:
-				longest_protein = len(ID_sequence[ID])
+				if len(ID_sequence[ID]) > longest_protein:
+					longest_protein = len(ID_sequence[ID])
 
 fasta_file.close()
-	
+
 
 # import domain abbreviations
 domain_abbreviation = {}
