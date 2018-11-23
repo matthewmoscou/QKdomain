@@ -2,7 +2,7 @@
 """
 %prog interproscan_results abbreviations domain output
 Reads InterProScan output and user-defined abbreviations, performs the following action:
-    1. Extracts all InterProScan output that contains a specific domain of interest
+    1. Extracts all FASTA sequences and InterProScan output that contains a specific domain of interest
 
 Author: Matthew Moscou <matthew.moscou@tsl.ac.uk>
 """
@@ -14,16 +14,32 @@ import string
 
 
 # import arguments and options
-usage = "usage: %prog interproscan_results abbreviations domain output"
+usage = "usage: %prog fasta interproscan_results abbreviations domain output_fa output_tsv"
 parser = OptionParser(usage=usage)
 (options, args) = parser.parse_args()
+
+# import protein sequence (FASTA)
+fasta_file = open(args[0], 'r')
+
+ID_sequence = {}
+
+for line in fasta_file.readlines():
+    if len(line) > 0:
+        if line[0] == '>':
+            ID = string.split(line)[0][1:]
+            ID_sequence[ID] = ''
+        else:
+            if len(string.split(line)) > 0:
+                ID_sequence[ID] += string.split(line)[0]
+            
+fasta_file.close()
 
 # import domain abbreviations
 domain_abbreviation = {}
 domain_group_identifiers = {}
 color_scheme = {}
 
-abbreviation_file = open(args[1], 'r')
+abbreviation_file = open(args[2], 'r')
 
 for line in abbreviation_file.readlines():
     line = string.replace(line, '\n', '')
@@ -40,7 +56,7 @@ for line in abbreviation_file.readlines():
 abbreviation_file.close()
 
 # interproscan analysis
-interproscan_file = open(args[0], 'r')
+interproscan_file = open(args[1], 'r')
 
 interproscan_data = interproscan_file.readlines()
 
@@ -60,12 +76,17 @@ for line in interproscan_data:
 interproscan_file.close()
 
 # export genes with domain
-interproscan_output = open(args[3], 'w')
+fasta_output = open(args[4], 'w')
+interproscan_output = open(args[5], 'w')
 
 for gene in gene_interproscan.keys():
-    if args[2] in gene_interproscan[gene][0]:
+    if args[3] in gene_interproscan[gene][0]:
+        fasta_output.write('>' + gene + '\n')
+        fasta_output.write(ID_sequence[gene] + '\n')
+
         for line in gene_interproscan[gene][1]:
             interproscan_output.write(line)
 
+fasta_output.close()
 interproscan_output.close()
 

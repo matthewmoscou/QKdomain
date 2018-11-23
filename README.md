@@ -12,6 +12,8 @@ A set of scripts that can be used for domain analysis. The majority of which are
 4. Extract proteins with a specific domain composition, strict or relaxed (optional)
 5. Exports an R script to generate a domain structure figure (optional)
 
+<i>QKdomain_domain_selection.py</i> reads protein sequence and InterProScan output, then extracts only those with a specific domain.
+
 ## Example
 ### Identify all thioredoxins in <i>Arabidopsis thaliana</i>
 The user is required to identify a set of protein sequences to be evaluated. Next, use InterProScan to evaluate these sequences. The resulting output in tab-separated format (tsv) is used as input for domain analysis. `QKdomain_preprocess.py` is used to assess the domain content present in the protein data set.
