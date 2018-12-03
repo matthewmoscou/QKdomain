@@ -256,7 +256,7 @@ for gene in gene_position_domain.keys():
 	# at end of sequence, if domains reach end, add domain(s) to gene structure
 	if len(local_domains) > 0:
 		for domain_group in domain_group_identifiers.keys():
-			if len(sets.Set(local_domains) & sets.Set(domain_group_identifiers[domain_group])) > 0:
+			if len(sets.Set(local_domains) & sets.Set([domain_group])) > 0:
 				gene_structure.append(domain_group)
 				gene_structure_start_stop.append([start[domain_group], position])
 	
